@@ -1,7 +1,6 @@
-# GrowEasy — AI CSV Lead Importer
+# AI CSV Lead Importer
 
-> **Assignment Submission** · GrowEasy · Position: Software Developer Intern / Full-Time  
-> Built by: [Your Name] · Submitted to: varun@groweasy.ai
+> Built by: Priyanshu Ranjan
 
 An AI-powered CSV ingestion platform that accepts **any CSV format** — Facebook Ads exports, Google Ads reports, real-estate CRM dumps, manual spreadsheets — and intelligently maps arbitrary column names into the unified GrowEasy CRM schema using OpenAI GPT-4o-mini with structured JSON output.
 
@@ -19,7 +18,7 @@ An AI-powered CSV ingestion platform that accepts **any CSV format** — Faceboo
 
 ## ✨ Features
 
-### Core (Required)
+### Core 
 - ✅ **Upload any CSV format** — column names never need to match
 - ✅ **Client-side preview** — instant parse with PapaParse before any AI call
 - ✅ **Responsive scrollable table** — sticky headers, horizontal + vertical scroll
@@ -31,8 +30,6 @@ An AI-powered CSV ingestion platform that accepts **any CSV format** — Faceboo
 - ✅ **Enum enforcement** — `crm_status` and `data_source` strict at prompt + schema + Zod levels
 - ✅ **Import summary** — Imported count, Skipped count, Total rows
 - ✅ **Skipped records panel** — shows raw row + reason for each skip
-
-### Bonus
 - 🎯 **Drag & Drop upload** (`react-dropzone`)
 - 🎯 **Real-time SSE progress bar** — live "Batch X of Y · Z%" as AI processes
 - 🎯 **Streaming architecture** — `POST` returns `jobId` instantly; `GET /progress` streams via Server-Sent Events
@@ -440,19 +437,7 @@ echo "OPENAI_API_KEY=sk-..." > .env
 docker compose up --build -d
 ```
 
-The app runs on ports `3000` (frontend) and `5000` (backend). Add an Nginx reverse proxy for HTTPS.
-
----
-
-## 📋 Submission Checklist
-
-- [ ] Hosted application URL (Frontend)
-- [ ] Hosted backend URL (tested via `/health`)
-- [ ] Public GitHub repository
-- [ ] README with setup instructions ← *this file*
-- [ ] Position applied for: **Software Developer Intern / Full-Time**
-- [ ] Email to: varun@groweasy.ai
-
+The app runs on ports `3000` (frontend) and `5000` (backend).
 ---
 
 ## 🏗️ CRM Fields Reference
