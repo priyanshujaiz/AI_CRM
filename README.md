@@ -10,9 +10,9 @@ An AI-powered CSV ingestion platform that accepts **any CSV format** — Faceboo
 
 | Service | URL |
 |---------|-----|
-| **Frontend** | `https://your-app.vercel.app` *(update after deploy)* |
-| **Backend API** | `https://your-api.railway.app` *(update after deploy)* |
-| **Health Check** | `https://your-api.railway.app/health` |
+| **Frontend** | `https://ai-crm-eta-ten.vercel.app/` |
+| **Backend API** | `https://ai-crm-id9w.onrender.com`  |
+| **Health Check** | `https://ai-crm-id9w.onrender.com/health` |
 
 ---
 
