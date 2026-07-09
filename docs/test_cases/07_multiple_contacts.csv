@@ -1,0 +1,3 @@
+name,email,mobile,notes
+John Doe,"john1@test.com, john2@test.com","+91 9876543210 / +91 9876543219",Client is calling from multiple numbers
+Sarah Jenkins,"sarah@corp.com; jenkins@corp.com","9988776655, 9988776654",Send proposals to both emails

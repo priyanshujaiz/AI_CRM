@@ -1,0 +1,5 @@
+name,email,mobile,crm_status,data_source
+Valid Match,valid@test.com,9876543210,SALE_DONE,meridian_tower
+Typo Match,typo@test.com,9876543211,GOOD_LEAD,sarjapur
+Outright Invalid,invalid@test.com,9876543212,wants_discount,unknown_website
+Blank Match,blank@test.com,9876543213,,

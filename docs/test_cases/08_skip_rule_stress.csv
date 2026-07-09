@@ -1,0 +1,9 @@
+name,email,mobile,company
+Valid Email Only,email.only@test.com,,Company A
+Valid Mobile Only,,9876543210,Company B
+Missing Both,,,Company C
+Blank Row,,,
+Whitespace Only,"   ","   ",Company D
+Malformed Email Only,not-an-email,,Company E
+Malformed Email Valid Mobile,not-an-email,9876543211,Company F
+Valid Email Malformed Mobile,valid@email.com,not-a-phone,Company G

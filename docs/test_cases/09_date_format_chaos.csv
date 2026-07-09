@@ -1,0 +1,6 @@
+name,email,mobile,created_at
+Date Slash,slash@test.com,9876543210,13/05/2026
+Date Dash,dash@test.com,9876543211,13-05-2026
+Date Text,text@test.com,9876543212,May 13, 2026 2:30 PM
+Date ISO,iso@test.com,9876543213,2026-05-13T14:20:48Z
+Date Invalid,invalid@test.com,9876543214,outright_invalid_date_string
