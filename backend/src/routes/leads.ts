@@ -1,8 +1,11 @@
 import { Router } from "express";
+import type { Request } from "express";
 import multer from "multer";
 import { LeadsController } from "../controllers/leads.js";
+import { PersistenceService } from "../services/persistence.js";
 import { jobStore } from "../utils/jobStore.js";
 import { Logger } from "../utils/logger.js";
+import type { LeadFilters } from "../services/persistence.js";
 
 const router = Router();
 
@@ -14,6 +17,113 @@ const upload = multer({
 
 // POST /api/leads/import — start import job, returns { jobId }
 router.post("/import", upload.single("file"), LeadsController.importLeads);
+
+// ─── Query / persistence endpoints ─────────────────────────────────────────────
+
+/**
+ * Parse optional query params into LeadFilters, ignoring invalid numeric values.
+ * Uses a spread builder so optional keys are simply omitted (exactOptionalPropertyTypes).
+ */
+function buildLeadFilters(query: Request["query"]): LeadFilters {
+  const filters: LeadFilters = {};
+  const { search, status, source, page, limit } = query;
+
+  if (typeof search === "string" && search.trim()) filters.search = search.trim();
+  if (typeof status === "string" && status) filters.status = status;
+  if (typeof source === "string" && source) filters.source = source;
+
+  const parsedPage = typeof page === "string" ? parseInt(page, 10) : NaN;
+  const parsedLimit = typeof limit === "string" ? parseInt(limit, 10) : NaN;
+
+  if (!Number.isNaN(parsedPage) && parsedPage > 0) filters.page = parsedPage;
+  if (!Number.isNaN(parsedLimit) && parsedLimit > 0) filters.limit = parsedLimit;
+
+  return filters;
+}
+
+/**
+ * GET /api/leads?search=&status=&source=&page=&limit=
+ * Returns { total, page, limit, leads } sorted by createdAt desc.
+ */
+router.get("/", async (req, res, next) => {
+  try {
+    const result = await PersistenceService.listLeads(buildLeadFilters(req.query));
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/leads/export?search=&status=&source=
+ * Returns a text/csv download of all matching leads (all 15 CRM fields).
+ * Declared before GET /:id so "export" is not captured as an id.
+ */
+router.get("/export", async (req, res, next) => {
+  try {
+    const leads = await PersistenceService.exportLeads(buildLeadFilters(req.query));
+
+    const headers = [
+      "created_at",
+      "name",
+      "email",
+      "country_code",
+      "mobile_without_country_code",
+      "company",
+      "city",
+      "state",
+      "country",
+      "lead_owner",
+      "crm_status",
+      "crm_note",
+      "data_source",
+      "possession_time",
+      "description",
+    ] as const;
+
+    const rows = leads.map((lead) => headers.map((h) => lead[h] ?? ""));
+    const csv =
+      headers.join(",") +
+      "\n" +
+      rows
+        .map((row) =>
+          row
+            .map((cell) => {
+              const s = cell == null ? "" : String(cell);
+              // Quote cells containing commas, quotes or newlines; escape double quotes.
+              return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+            })
+            .join(",")
+        )
+        .join("\n");
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="leads-${Date.now()}.csv"`
+    );
+    res.status(200).send(csv);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/leads/:id
+ * Returns a single persisted lead, or 404 if not found.
+ */
+router.get("/:id", async (req, res, next) => {
+  try {
+    const lead = await PersistenceService.getLead(req.params.id);
+    if (!lead) {
+      res.status(404).json({ error: "Lead not found." });
+      return;
+    }
+    res.json(lead);
+  } catch (error) {
+    next(error);
+  }
+});
 
 /**
  * GET /api/leads/import/:jobId/progress — Server-Sent Events stream
