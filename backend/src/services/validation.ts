@@ -1,10 +1,14 @@
 import { CrmRecordSchema } from "../types/crmRecord.js";
-import type { CrmRecord, RawRecord, SkippedRecord } from "../types/crmRecord.js";
+import type { CrmRecord, RawRecord, SkippedRecord, AiMappedRecord } from "../types/crmRecord.js";
 
 export class ValidationService {
   /**
    * Validates and cleans a list of CRM records returned by the AI.
    * Performs Zod parsing, enforces enums, and verifies contact details.
+   * 
+   * Records are aligned to their raw source rows via the AI-provided `row_index`
+   * (0-based position within the batch). If `row_index` is missing (e.g. mocks or
+   * older test fixtures), positional alignment is used as a fallback.
    * 
    * @param aiRecords Mapped records from the AI completion
    * @param rawBatch The original raw records (for building skipped references)
@@ -12,22 +16,29 @@ export class ValidationService {
    * @returns Cleaned records and skipped records
    */
   public static validateBatch(
-    aiRecords: CrmRecord[],
+    aiRecords: AiMappedRecord[],
     rawBatch: RawRecord[],
     batchStartIndex: number
   ): { validated: CrmRecord[]; skipped: SkippedRecord[] } {
     const validated: CrmRecord[] = [];
     const skipped: SkippedRecord[] = [];
 
-    // Map original raw rows by index relative to this batch
-    // AI might return fewer records if it skipped rows itself, or mismatch rows.
-    // We map them one-by-one safely.
+    // Map AI records to their original row positions:
+    // - Preferred: the explicit row_index the AI returns (stable even if it drops or reorders rows).
+    // - Fallback (records without row_index): positional alignment.
+    const recordsByRowIndex = new Map<number, AiMappedRecord>();
+    aiRecords.forEach((record, position) => {
+      const idx = typeof record.row_index === "number" ? record.row_index : position;
+      if (!recordsByRowIndex.has(idx)) {
+        recordsByRowIndex.set(idx, record);
+      }
+    });
+
     rawBatch.forEach((rawRow, offset) => {
       const globalRowIndex = batchStartIndex + offset + 1; // 1-indexed
 
-      // Find the corresponding AI record. 
-      // Typically, AI matches the indices, but we must protect against index mismatch.
-      const aiRecord = aiRecords[offset];
+      // Find the corresponding AI record by its original position in the batch.
+      const aiRecord = recordsByRowIndex.get(offset);
 
       if (!aiRecord) {
         skipped.push({

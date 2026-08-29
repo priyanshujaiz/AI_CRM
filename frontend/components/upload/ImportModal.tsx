@@ -43,6 +43,33 @@ interface ImportModalProps {
   onImportSuccess: (importedLeads: CrmRecord[], skippedLeads: SkippedRecord[]) => void;
 }
 
+/**
+ * Decodes a CSV file into text with encoding detection, mirroring the backend:
+ * BOM sniff → strict UTF-8 → Windows-1252 fallback (Excel's default single-byte
+ * encoding). Without this, cp1252 files like "Café,₹" preview as mojibake.
+ */
+async function detectAndDecodeCsv(file: File): Promise<string> {
+  const buf = new Uint8Array(await file.arrayBuffer());
+
+  // Byte Order Mark — authoritative when present
+  if (buf.length >= 3 && buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf) {
+    return new TextDecoder("utf-8").decode(buf.subarray(3));
+  }
+  if (buf.length >= 2 && buf[0] === 0xff && buf[1] === 0xfe) {
+    return new TextDecoder("utf-16le").decode(buf.subarray(2));
+  }
+  if (buf.length >= 2 && buf[0] === 0xfe && buf[1] === 0xff) {
+    return new TextDecoder("utf-16be").decode(buf.subarray(2));
+  }
+
+  // Valid UTF-8 without a BOM is the common case
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(buf);
+  } catch {
+    return new TextDecoder("windows-1252").decode(buf);
+  }
+}
+
 export function ImportModal({ onImportSuccess }: ImportModalProps) {
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -96,39 +123,47 @@ export function ImportModal({ onImportSuccess }: ImportModalProps) {
       const selectedFile = acceptedFiles[0];
       setFile(selectedFile);
 
-      // Parse the CSV locally for previewing
-      Papa.parse(selectedFile, {
-        header: true,
-        skipEmptyLines: "greedy",
-        preview: 6, // Parse only first few rows for modal preview performance
-        complete: (results) => {
-          if (results.errors.length > 0 && results.data.length === 0) {
-            setError("Error parsing CSV file. Please make sure the format is valid.");
-            setFile(null);
-            return;
-          }
+      // Decode the file with encoding detection, then parse the text locally for preview.
+      // Matching the backend decoder keeps the preview and the actual import identical.
+      detectAndDecodeCsv(selectedFile)
+        .then((csvText) => {
+          Papa.parse(csvText, {
+            header: true,
+            skipEmptyLines: "greedy",
+            preview: 6, // Parse only first few rows for modal preview performance
+            complete: (results) => {
+              if (results.errors.length > 0 && results.data.length === 0) {
+                setError("Error parsing CSV file. Please make sure the format is valid.");
+                setFile(null);
+                return;
+              }
 
-          if (results.data.length === 0) {
-            setError("The uploaded CSV file is empty.");
-            setFile(null);
-            return;
-          }
+              if (results.data.length === 0) {
+                setError("The uploaded CSV file is empty.");
+                setFile(null);
+                return;
+              }
 
-          const parsedHeaders = results.meta.fields || [];
-          if (parsedHeaders.length === 0) {
-            setError("No valid headers found in the CSV file.");
-            setFile(null);
-            return;
-          }
+              const parsedHeaders = results.meta.fields || [];
+              if (parsedHeaders.length === 0) {
+                setError("No valid headers found in the CSV file.");
+                setFile(null);
+                return;
+              }
 
-          setHeaders(parsedHeaders);
-          setRows(results.data as Record<string, string>[]);
-        },
-        error: (err) => {
-          setError(`Parsing error: ${err.message}`);
+              setHeaders(parsedHeaders);
+              setRows(results.data as Record<string, string>[]);
+            },
+            error: (err: Error) => {
+              setError(`Parsing error: ${err.message}`);
+              setFile(null);
+            },
+          });
+        })
+        .catch((err) => {
+          setError(`Could not read file: ${err.message}`);
           setFile(null);
-        },
-      });
+        });
     },
     []
   );

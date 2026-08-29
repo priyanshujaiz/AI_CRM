@@ -37,7 +37,8 @@ An AI-powered CSV ingestion platform that accepts **any CSV format** — Faceboo
 - 🎯 **Expandable result rows** — click "Details" to see all 15 CRM fields + amber-highlighted `crm_note`
 - 🎯 **Dark mode** — full system-preference-aware theme toggle
 - 🎯 **Rate limiting** — 30 requests / IP / 15 min
-- 🎯 **Unit tests** — 9 Vitest tests (validation, CSV parsing, retry logic)
+- 🎯 **Encoding detection** — BOM / UTF-8 / Windows-1252 sniffing on import and preview, so Excel-exported CSVs (é, ₹, ±) are never garbled
+- 🎯 **Unit tests** — 25 Vitest tests (CSV parsing + encoding, validation + date/row alignment, retry logic)
 - 🎯 **Docker + Docker Compose** — full container orchestration
 - 🎯 **Download sample CSV** — shows AI mapping in action with messy real-world column names
 
@@ -246,12 +247,13 @@ npm run test
 ```
 
 ```
-✓ csv.test.ts         (2 tests)  — buffer parsing, empty CSV
-✓ retry.test.ts       (3 tests)  — backoff, success on retry, exhausted retries
-✓ validation.test.ts  (4 tests)  — email/mobile skip rule, enum enforcement, date fallback
+✓ csv.test.ts         (7 tests)   — buffer parsing, empty CSV, reject-on-corrupt, encoding detection
+✓ retry.test.ts       (3 tests)   — backoff, success on retry, exhausted retries
+✓ validation.test.ts  (15 tests)  — email/mobile skip rule, enum enforcement, date fallback,
+                                    row_index alignment, default lead owner, date disambiguation
 
 Test Files  3 passed (3)
-Tests       9 passed (9)
+Tests       25 passed (25)
 ```
 
 ---

@@ -1,6 +1,7 @@
 import { OpenAI } from "openai";
 import { SYSTEM_PROMPT, FEW_SHOT_EXAMPLES } from "../prompts/crmExtraction.js";
-import type { RawRecord, CrmRecord } from "../types/crmRecord.js";
+import type { RawRecord, AiMappedRecord } from "../types/crmRecord.js";
+import { Logger } from "../utils/logger.js";
 
 // Define strict JSON schema for the OpenAI Structured Outputs API
 const leadsResponseSchema = {
@@ -12,6 +13,10 @@ const leadsResponseSchema = {
       items: {
         type: "object",
         properties: {
+          row_index: {
+            type: "integer",
+            description: "Zero-based index of the source row in the input array. MUST match the order of the input rows exactly."
+          },
           created_at: {
             type: "string",
             description: "Date string in format YYYY-MM-DD HH:mm:ss or parseable ISO format."
@@ -76,6 +81,7 @@ const leadsResponseSchema = {
           }
         },
         required: [
+          "row_index",
           "created_at",
           "name",
           "email",
@@ -100,8 +106,6 @@ const leadsResponseSchema = {
   additionalProperties: false
 };
 
-import { Logger } from "../utils/logger.js";
-
 export class AiService {
   private static openaiClient: OpenAI | null = null;
 
@@ -123,9 +127,9 @@ export class AiService {
    * Uses structured JSON response format to guarantee schema matching.
    * 
    * @param rawRecords Array of raw key-value strings from CSV parser
-   * @returns Array of mapped CRM records
+   * @returns Array of mapped CRM records (still carrying their row_index, pre-validation)
    */
-  public static async mapBatch(rawRecords: RawRecord[]): Promise<CrmRecord[]> {
+  public static async mapBatch(rawRecords: RawRecord[]): Promise<AiMappedRecord[]> {
     const startTime = Date.now();
     Logger.info(`Initiating AI translation call for ${rawRecords.length} records...`, "AI-Service");
     
@@ -163,7 +167,28 @@ export class AiService {
     }
 
     Logger.info(`AI mapping finished in ${duration}ms.`, "AI-Service");
-    const parsedData = JSON.parse(outputText);
-    return (parsedData.leads || []) as CrmRecord[];
+
+    const parsedData: { leads?: unknown } = JSON.parse(outputText);
+    if (!parsedData || !Array.isArray(parsedData.leads)) {
+      Logger.error("AI response did not contain the expected 'leads' array.", "AI-Service");
+      throw new Error("AI response did not contain the expected 'leads' array.");
+    }
+
+    const leads = parsedData.leads as AiMappedRecord[];
+
+    // Guard against silent misalignment: if the AI dropped or merged rows, surface it
+    // instead of letting positional validation map records onto the wrong source rows.
+    if (leads.length !== rawRecords.length) {
+      Logger.error(
+        `AI mapping mismatch: received ${leads.length} leads for ${rawRecords.length} input rows.`,
+        "AI-Service"
+      );
+      throw new Error(
+        `AI mapping mismatch: received ${leads.length} leads for ${rawRecords.length} input rows. ` +
+          `Batch will be skipped for manual review.`
+      );
+    }
+
+    return leads;
   }
 }
