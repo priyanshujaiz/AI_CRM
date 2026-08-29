@@ -67,11 +67,11 @@ jobs:
 
   # Playwright smoke test — frontend only, no backend/OpenAI needed.
   # Skipped by default; enable it by setting the repository/org variable
-  # E2E_RUN (or secret E2E_RUN) to `true`.
+  # E2E_RUN to `true` (unset variables evaluate to empty in `if`).
   e2e:
     name: E2E smoke (frontend, opt-in)
     runs-on: ubuntu-latest
-    if: ${{ vars.E2E_RUN == 'true' || secrets.E2E_RUN == 'true' }}
+    if: ${{ vars.E2E_RUN == 'true' }}
     defaults:
       run:
         working-directory: frontend
