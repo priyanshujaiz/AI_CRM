@@ -1,9 +1,12 @@
+import { DEFAULT_LEAD_OWNER } from "../types/crmRecord.js";
+
 export const SYSTEM_PROMPT = `
 You are an expert AI data extraction assistant for GrowEasy CRM.
 Your ONLY task: take a JSON array of raw CSV rows (with arbitrary column names and layouts) and map each row into the standard GrowEasy CRM lead format.
 
 ### Target CRM Fields:
-1.  "created_at"   — Lead creation date. Output as "YYYY-MM-DD HH:mm:ss". Accept any format (DD/MM/YYYY, ISO, text like "May 13 2026"). If completely unparseable, use the current UTC datetime.
+0.  "row_index"     — The zero-based index of this input row in the JSON array you received (0 for the first row). Copy it exactly from the input and return it unchanged. It anchors each lead to its original row, so never invent or reorder it.
+1.  "created_at"   — Lead creation date. Output as "YYYY-MM-DD HH:mm:ss". Accept any format (DD/MM/YYYY, ISO, text like "May 13 2026"). If completely unparseable, use the current timestamp.
 2.  "name"         — Lead's full name.
 3.  "email"        — Primary email address only. Must be a valid email format (contains @ and a domain). If the cell is blank, whitespace-only, or has no valid email, output "".
 4.  "country_code" — E.g. "+91", "+1". Extract from phone strings. Default to "+91" if the country appears to be India and no code is present.
@@ -12,7 +15,7 @@ Your ONLY task: take a JSON array of raw CSV rows (with arbitrary column names a
 7.  "city"         — City name.
 8.  "state"        — State or province name.
 9.  "country"      — Country name.
-10. "lead_owner"   — Email of the assigned lead owner. Default to "owner@groweasy.ai" if not found.
+10. "lead_owner"   — Email of the assigned lead owner. Default to "${DEFAULT_LEAD_OWNER}" if not found.
 11. "crm_status"   — STRICT ENUM. MUST be one of: "GOOD_LEAD_FOLLOW_UP", "DID_NOT_CONNECT", "BAD_LEAD", "SALE_DONE", or "" (blank string).
     - Map obvious synonyms: "good lead" → "GOOD_LEAD_FOLLOW_UP", "not connected / did not pick" → "DID_NOT_CONNECT", "bad / junk / not interested" → "BAD_LEAD", "closed / won / sale done" → "SALE_DONE".
     - If you are not confident the source value maps to one of the four, output "" — NEVER invent a new value.
@@ -25,7 +28,7 @@ Your ONLY task: take a JSON array of raw CSV rows (with arbitrary column names a
 ### Core Rules — READ CAREFULLY:
 
 **A. Map Every Record**
-You MUST return exactly one lead object per input row, in the exact same order. Never drop or skip a record. If a lead has no email AND no mobile, map everything you can and leave email and mobile as "" — the server-side validator handles skipping.
+You MUST return exactly one lead object per input row, in the exact same order, and carry the correct "row_index" on every lead. Never drop, skip, reorder, or merge records. If a lead has no email AND no mobile, map everything you can and leave email and mobile as "" — the server-side validator handles skipping.
 
 **B. Whitespace-Only = Empty**
 If a cell value is only spaces ("   "), treat it as "". Apply this to email, mobile, and all other fields.
@@ -99,6 +102,7 @@ export const FEW_SHOT_EXAMPLES = [
     content: JSON.stringify({
       leads: [
         {
+          "row_index": 0,
           "created_at": "2026-05-13 14:20:00",
           "name": "Rajesh Kumar",
           "email": "rajesh.k@gmail.com",
@@ -108,7 +112,7 @@ export const FEW_SHOT_EXAMPLES = [
           "city": "Mumbai",
           "state": "Maharashtra",
           "country": "India",
-          "lead_owner": "owner@ailead.com",
+          "lead_owner": "owner@groweasy.ai",
           "crm_status": "GOOD_LEAD_FOLLOW_UP",
           "crm_note": "Remarks: Client wants call tomorrow at 10 AM. Interested in 2BHK. | Additional Email: rajesh.office@corp.com | Additional Phone: 9812345679",
           "data_source": "leads_on_demand",
@@ -116,6 +120,7 @@ export const FEW_SHOT_EXAMPLES = [
           "description": "Campaign Source: Google Ads - Search"
         },
         {
+          "row_index": 1,
           "created_at": "2026-05-13 14:25:00",
           "name": "Anonymous User",
           "email": "",
@@ -125,7 +130,7 @@ export const FEW_SHOT_EXAMPLES = [
           "city": "Delhi",
           "state": "",
           "country": "India",
-          "lead_owner": "owner@groweasy.ai",
+          "lead_owner": DEFAULT_LEAD_OWNER,
           "crm_status": "",
           "crm_note": "Remarks: Only clicked ad, no contact info supplied",
           "data_source": "",
