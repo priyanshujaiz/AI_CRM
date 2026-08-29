@@ -1,0 +1,81 @@
+// Prisma schema for the ai-csv backend.
+//
+// Local development uses SQLite (file: backend/prisma/dev.db) for zero-setup runs.
+// See the persistence service for how the provider URL is chosen via DATABASE_URL.
+// For production, switch `provider` to "postgresql" and point DATABASE_URL at the
+// Postgres instance (see the notes in the session summary / backend README).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// SQLite cannot store '' in an enum column, so an empty crm_status / data_source is
+// mapped to the EMPTY_STRING sentinel value in the DB and serialized back to '' in the API.
+enum CrmStatus {
+  GOOD_LEAD_FOLLOW_UP
+  DID_NOT_CONNECT
+  BAD_LEAD
+  SALE_DONE
+  EMPTY_STRING
+}
+
+enum DataSource {
+  leads_on_demand
+  meridian_tower
+  eden_park
+  varah_swamy
+  sarjapur_plots
+  EMPTY_STRING
+}
+
+enum JobStatus {
+  PROCESSING
+  DONE
+  FAILED
+}
+
+model Lead {
+  id                           String     @id @default(cuid())
+  jobId                        String
+  created_at                   DateTime
+  name                         String
+  email                        String     @default("")
+  country_code                 String     @default("")
+  mobile_without_country_code  String     @default("")
+  company                      String     @default("")
+  city                         String     @default("")
+  state                        String     @default("")
+  country                      String     @default("")
+  lead_owner                   String     @default("")
+  crm_status                   CrmStatus  @default(EMPTY_STRING)
+  crm_note                     String     @default("")
+  data_source                  DataSource @default(EMPTY_STRING)
+  possession_time              String     @default("")
+  description                  String     @default("")
+  createdAt                    DateTime   @default(now())
+  updatedAt                    DateTime   @updatedAt
+
+  importJob                    ImportJob @relation(fields: [jobId], references: [id])
+
+  @@index([jobId])
+  @@index([createdAt])
+  @@index([crm_status])
+  @@index([data_source])
+}
+
+model ImportJob {
+  id              String     @id @default(uuid())
+  status          JobStatus  @default(PROCESSING)
+  total_rows      Int        @default(0)
+  total_imported  Int        @default(0)
+  total_skipped   Int        @default(0)
+  skipped         Json
+  createdAt       DateTime   @default(now())
+
+  leads           Lead[]
+}
