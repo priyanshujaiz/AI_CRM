@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, Fragment } from "react";
+import Link from "next/link";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { ImportModal } from "@/components/upload/ImportModal";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
@@ -15,6 +16,7 @@ import {
   Smartphone,
   ChevronRight,
   Construction,
+  Layers,
 } from "lucide-react";
 
 // Mock lead data following the AI Lead schema
@@ -180,6 +182,14 @@ export default function Home() {
                 </p>
               </div>
               <div className="flex items-center gap-2 mt-1">
+                <Link
+                  href="/leads"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold text-white transition-colors hover:opacity-90"
+                  style={{ backgroundColor: "#0F6E56" }}
+                >
+                  <Layers className="w-4 h-4" />
+                  View Leads
+                </Link>
                 <ThemeToggle />
                 <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors">
                   <RefreshCw className="w-4 h-4" />

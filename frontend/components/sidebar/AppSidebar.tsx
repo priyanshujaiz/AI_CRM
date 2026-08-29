@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -16,7 +18,15 @@ import {
   Building2,
   ChevronRight,
   BrainCircuit,
+  Upload,
+  Layers,
 } from "lucide-react";
+
+// App pages reachable via the router (kept separate from the placeholder tabs).
+const pageNav = [
+  { icon: Upload, label: "Import", href: "/" },
+  { icon: Layers, label: "Leads", href: "/leads" },
+];
 
 const mainNav = [
   { icon: LayoutDashboard, label: "Dashboard" },
@@ -42,6 +52,7 @@ export function AppSidebar({
   activeTab: string;
   onTabChange: (tab: string) => void;
 }) {
+  const pathname = usePathname();
   return (
     <aside className="fixed left-0 top-0 h-full w-60 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 flex flex-col z-30 shadow-sm">
       {/* Logo */}
@@ -68,6 +79,33 @@ export function AppSidebar({
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-5">
+        {/* APP PAGES */}
+        <div>
+          <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest px-2 mb-1.5">Pages</p>
+          <ul className="space-y-0.5">
+            {pageNav.map((item) => {
+              const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+              return (
+                <li key={item.label}>
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors font-medium",
+                      isActive
+                        ? "text-brand font-semibold"
+                        : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/60 hover:text-gray-800 dark:hover:text-white"
+                    )}
+                    style={isActive ? { backgroundColor: "#E1F5EE", color: "#0F6E56" } : {}}
+                  >
+                    <item.icon className="w-4 h-4 flex-shrink-0" />
+                    <span>{item.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
         {/* MAIN */}
         <div>
           <p className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-widest px-2 mb-1.5">Main</p>

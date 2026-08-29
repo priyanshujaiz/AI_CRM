@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import type { Request, Response, NextFunction } from "express";
 import { CsvService } from "../services/csv.js";
 import { BatchService } from "../services/batch.js";
+import { PersistenceService } from "../services/persistence.js";
 import { jobStore } from "../utils/jobStore.js";
 import { Logger } from "../utils/logger.js";
 
@@ -70,6 +71,16 @@ export class LeadsController {
             `Job ${jobId} finished. Imported: ${result.imported.length} | Skipped: ${result.skipped.length}`,
             "LeadsController"
           );
+
+          // Persist the job + imported leads + skipped rows best-effort. saveImportJob
+          // catches its own errors and logs a WARN, so this never throws into the SSE stream.
+          PersistenceService.saveImportJob({
+            jobId,
+            status: "DONE",
+            totalRows: parsedRecords.length,
+            imported: result.imported,
+            skipped: result.skipped,
+          });
         })
         .catch((err: any) => {
           const msg = err?.message || "Unknown processing error.";

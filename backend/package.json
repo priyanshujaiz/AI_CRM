@@ -8,7 +8,11 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:push": "prisma db push",
+    "postinstall": "prisma generate"
   },
   "keywords": [],
   "author": "",
@@ -29,12 +33,14 @@
     "iconv-lite": "^0.7.3",
     "multer": "^2.2.0",
     "openai": "^6.45.0",
+    "@prisma/client": "^6.5.0",
     "p-limit": "^7.3.0",
     "papaparse": "^5.5.4",
     "typescript": "^7.0.2",
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "prisma": "^6.5.0",
     "tsx": "^4.23.0",
     "vitest": "^4.1.10"
   }
